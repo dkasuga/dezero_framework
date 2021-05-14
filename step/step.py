@@ -17,6 +17,9 @@ class Variable:
     #         x.grad = f.backward(self.grad)  # call the function's backward
     #         x.backward()
     def backward(self):
+        if self.grad is None:
+            self.grad = np.ones_like(self.data)
+
         funcs = [self.creator]
         while funcs:
             f = funcs.pop()
