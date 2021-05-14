@@ -10,12 +10,21 @@ class Variable:
     def set_creator(self, func):
         self.creator = func
 
+    # def backward(self):
+    #     f = self.creator  # Get a function
+    #     if f is not None:
+    #         x = f.input  # Get the function's input
+    #         x.grad = f.backward(self.grad)  # call the function's backward
+    #         x.backward()
     def backward(self):
-        f = self.creator  # Get a function
-        if f is not None:
-            x = f.input  # Get the function's input
-            x.grad = f.backward(self.grad)  # call the function's backward
-            x.backward()
+        funcs = [self.creator]
+        while funcs:
+            f = funcs.pop()
+            x, y = f.input, f.output
+            x.grad = f.backward(y.grad)
+
+            if x.creator is not None:
+                funcs.append(x.creator)
 
 
 class Function:
@@ -67,3 +76,4 @@ y = C(b)
 
 y.grad = np.array(1.0)
 y.backward()
+print(x.grad)
