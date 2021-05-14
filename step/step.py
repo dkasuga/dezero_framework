@@ -65,14 +65,20 @@ class Exp(Function):
         return gx
 
 
-A = Square()
-B = Exp()
-C = Square()
+def square(x):
+    f = Square()
+    return f(x)
+
+
+def exp(x):
+    f = Exp()
+    return f(x)
+
 
 x = Variable(np.array(0.5))
-a = A(x)
-b = B(a)
-y = C(b)
+a = square(x)
+b = exp(a)
+y = square(b)
 
 y.grad = np.array(1.0)
 y.backward()
