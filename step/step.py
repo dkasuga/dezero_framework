@@ -1,8 +1,28 @@
 import numpy as np
+import unittest
+
+
+class SquareTest(unittest.TestCase):
+    def test_forward(self):
+        x = Variable(np.array(2.0))
+        y = square(x)
+        excepted = np.array(4.0)
+        self.assertEqual(y.data, excepted)
+
+    def test_backward(self):
+        x = Variable(np.array(3.0))
+        y = square(x)
+        y.backward()
+        expected = np.array(6.0)
+        self.assertEqual(x.grad, expected)
 
 
 class Variable:
     def __init__(self, data):
+        if data is not None:
+            if not isinstance(data, np.ndarray):
+                raise TypeError('{} is not supported'.format(type(data)))
+
         self.data = data
         self.grad = None
         self.creator = None
@@ -34,7 +54,7 @@ class Function:
     def __call__(self, input):
         x = input.data
         y = self.forward(x)
-        output = Variable(y)
+        output = Variable(as_array(y))
         output.set_creator(self)  # Set parent(function)
         self.input = input
         self.output = output  # Set output
@@ -76,6 +96,12 @@ def square(x):
 def exp(x):
     f = Exp()
     return f(x)
+
+
+def as_array(x):
+    if np.isscalar(x):
+        return np.array(x)
+    return x
 
 
 x = Variable(np.array(0.5))
