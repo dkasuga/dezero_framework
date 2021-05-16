@@ -54,3 +54,14 @@ class AddTest(unittest.TestCase):
         x.cleargrad()
         z.backward()
         self.assertEqual(x.grad, np.array(3.0))
+
+
+class BackwardTest(unittest.TestCase):
+    def test_generation_sort(self):
+        x = Variable(np.array(2.0))
+        a = square(x)
+        y = add(square(a), square(a))
+        y.backward()
+
+        self.assertEqual(y.data, np.array(32.0))
+        self.assertEqual(x.grad, np.array(64.0))
