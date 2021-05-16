@@ -1,20 +1,12 @@
 import numpy as np
-import unittest
 
 
-class SquareTest(unittest.TestCase):
-    def test_forward(self):
-        x = Variable(np.array(2.0))
-        y = square(x)
-        excepted = np.array(4.0)
-        self.assertEqual(y.data, excepted)
-
-    def test_backward(self):
-        x = Variable(np.array(3.0))
-        y = square(x)
-        y.backward()
-        expected = np.array(6.0)
-        self.assertEqual(x.grad, expected)
+def numerical_diff(f, x, eps=1e-4):
+    x0 = Variable(x.data - eps)
+    x1 = Variable(x.data + eps)
+    y0 = f(x0)
+    y1 = f(x1)
+    return (y1.data - y0.data) / (2 * eps)
 
 
 class Variable:
@@ -40,31 +32,54 @@ class Variable:
         if self.grad is None:
             self.grad = np.ones_like(self.data)
 
+        # backwardは計算グラフをDFS
         funcs = [self.creator]
         while funcs:
             f = funcs.pop()
-            x, y = f.input, f.output
-            x.grad = f.backward(y.grad)
+            gys = [output.grad for output in f.outputs]
+            gxs = f.backward(*gys)
+            if not isinstance(gxs, tuple):
+                gxs = (gxs, )
 
-            if x.creator is not None:
-                funcs.append(x.creator)
+            for x, gx in zip(f.inputs, gxs):
+                if x.grad is None:
+                    x.grad = gx
+                else:
+                    x.grad = x.grad + gx
+
+                if x.creator is not None:
+                    funcs.append(x.creator)
 
 
 class Function:
-    def __call__(self, input):
-        x = input.data
-        y = self.forward(x)
-        output = Variable(as_array(y))
-        output.set_creator(self)  # Set parent(function)
-        self.input = input
-        self.output = output  # Set output
-        return output
+    def __call__(self, *inputs):
+        xs = [x.data for x in inputs]
+        ys = self.forward(*xs)  # unpacking by *
+        if not isinstance(ys, tuple):
+            ys = (ys, )
+        outputs = [Variable(as_array(y)) for y in ys]
+
+        for output in outputs:
+            output.set_creator(self)
+        self.inputs = inputs
+        self.outputs = outputs  # Set output
+
+        return outputs if len(outputs) > 1 else outputs[0]
 
     def forward(self, x):
         raise NotImplementedError()
 
     def backward(self, gy):
         raise NotImplementedError()
+
+
+class Add(Function):
+    def forward(self, x0, x1):
+        y = x0 + x1
+        return y
+
+    def backward(self, gy):
+        return gy, gy
 
 
 class Square(Function):
@@ -73,7 +88,7 @@ class Square(Function):
         return y
 
     def backward(self, gy):
-        x = self.input.data
+        x = self.inputs[0].data
         gx = 2 * x * gy
         return gx
 
@@ -83,9 +98,13 @@ class Exp(Function):
         return np.exp(x)
 
     def backward(self, gy):
-        x = self.input.data
+        x = self.inputs[0].data
         gx = np.exp(x) * gy
         return gx
+
+
+def add(x0, x1):
+    return Add()(x0, x1)
 
 
 def square(x):
@@ -102,13 +121,3 @@ def as_array(x):
     if np.isscalar(x):
         return np.array(x)
     return x
-
-
-x = Variable(np.array(0.5))
-a = square(x)
-b = exp(a)
-y = square(b)
-
-y.grad = np.array(1.0)
-y.backward()
-print(x.grad)
