@@ -3,11 +3,71 @@ import weakref
 import contextlib
 
 
+def square(x):
+    f = Square()
+    return f(x)
+
+
+def exp(x):
+    f = Exp()
+    return f(x)
+
+
+def add(x0, x1):
+    x1 = as_array(x1)
+    return Add()(x0, x1)
+
+
+def mul(x0, x1):
+    x1 = as_array(x1)
+    return Mul()(x0, x1)
+
+
+def as_array(x):
+    if np.isscalar(x):
+        return np.array(x)
+    return x
+
+
+def numerical_diff(f, x, eps=1e-4):
+    x0 = Variable(x.data - eps)
+    x1 = Variable(x.data + eps)
+    y0 = f(x0)
+    y1 = f(x1)
+    return (y1.data - y0.data) / (2 * eps)
+
+
+@contextlib.contextmanager
+def using_config(name, value):
+    # ---------- 前処理 ----------
+    old_value = getattr(Config, name)
+    setattr(Config, name, value)
+    # ---------- 前処理ここまで ----------
+    try:
+        yield
+    finally:
+        # ---------- 後処理 ----------
+        setattr(Config, name, old_value)
+        # ---------- 後処理ここまで ----------
+
+
+def no_grad():
+    return using_config('enable_backprop', False)
+
+
+def as_variable(obj):  # assume that obj is either Variable or ndarray instance
+    if isinstance(obj, Variable):
+        return obj
+    return Variable(obj)
+
+
 class Config:
     enable_backprop = True
 
 
 class Variable:
+    __array_priority__ = 200  # 演算子の優先度をndarray等の演算子に比べて高める
+
     def __init__(self, data, name=None):
         if data is not None:
             if not isinstance(data, np.ndarray):
@@ -93,15 +153,17 @@ class Variable:
     def dtype(self):
         return self.data.dtype
 
-    def __mul__(self, other):
-        return mul(self, other)
 
-    def __add__(self, other):
-        return add(self, other)
+Variable.__add__ = add
+Variable.__radd__ = add
+Variable.__mul__ = mul
+Variable.__rmul__ = mul
 
 
 class Function:
     def __call__(self, *inputs):
+        inputs = [as_variable(x) for x in inputs]
+
         xs = [x.data for x in inputs]
         ys = self.forward(*xs)  # unpacking by *
         if not isinstance(ys, tuple):
@@ -162,53 +224,3 @@ class Mul(Function):
     def backward(self, gy):
         x0, x1 = self.inputs[0].data, self.inputs[1].data
         return gy * x1, gy * x0
-
-
-def add(x0, x1):
-    return Add()(x0, x1)
-
-
-def square(x):
-    f = Square()
-    return f(x)
-
-
-def exp(x):
-    f = Exp()
-    return f(x)
-
-
-def mul(x0, x1):
-    return Mul()(x0, x1)
-
-
-def as_array(x):
-    if np.isscalar(x):
-        return np.array(x)
-    return x
-
-
-def numerical_diff(f, x, eps=1e-4):
-    x0 = Variable(x.data - eps)
-    x1 = Variable(x.data + eps)
-    y0 = f(x0)
-    y1 = f(x1)
-    return (y1.data - y0.data) / (2 * eps)
-
-
-@contextlib.contextmanager
-def using_config(name, value):
-    # ---------- 前処理 ----------
-    old_value = getattr(Config, name)
-    setattr(Config, name, value)
-    # ---------- 前処理ここまで ----------
-    try:
-        yield
-    finally:
-        # ---------- 後処理 ----------
-        setattr(Config, name, old_value)
-        # ---------- 後処理ここまで ----------
-
-
-def no_grad():
-    return using_config('enable_backprop', False)

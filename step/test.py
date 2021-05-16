@@ -104,3 +104,17 @@ class OperationOverload(unittest.TestCase):
         self.assertEqual(y.data, np.array(7.0))
         self.assertEqual(a.grad, np.array(2.0))
         self.assertEqual(b.grad, np.array(3.0))
+
+    def test_operation_variable_and_ndarray(self):
+        x = Variable(np.array(2.0))
+        y = x + np.array(3.0)
+        self.assertEqual(y.data, np.array(5.0))
+        z = np.array([2.0]) + x
+        self.assertEqual(z.data, np.array(4.0))
+
+    def test_operation_variable_and_number(self):
+        x = Variable(np.array(2.0))
+        y = x + 3.0
+        self.assertEqual(y.data, np.array(5.0))
+        z = 3.0 * x + 1.0
+        self.assertEqual(z.data, np.array(7.0))
