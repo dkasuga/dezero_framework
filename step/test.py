@@ -89,3 +89,18 @@ class MemoryManagement(unittest.TestCase):
         with no_grad():
             x = Variable(np.array(2.0))
             y = square(x)
+
+
+class OperationOverload(unittest.TestCase):
+    def test_add_mul_operation(self):
+        a = Variable(np.array(3.0))
+        b = Variable(np.array(2.0))
+        c = Variable(np.array(1.0))
+
+        # y =add(mul(a, b), c)
+        y = a * b + c
+        y.backward()
+
+        self.assertEqual(y.data, np.array(7.0))
+        self.assertEqual(a.grad, np.array(2.0))
+        self.assertEqual(b.grad, np.array(3.0))

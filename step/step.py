@@ -93,6 +93,12 @@ class Variable:
     def dtype(self):
         return self.data.dtype
 
+    def __mul__(self, other):
+        return mul(self, other)
+
+    def __add__(self, other):
+        return add(self, other)
+
 
 class Function:
     def __call__(self, *inputs):
@@ -148,6 +154,16 @@ class Exp(Function):
         return gx
 
 
+class Mul(Function):
+    def forward(self, x0, x1):
+        y = x0 * x1
+        return y
+
+    def backward(self, gy):
+        x0, x1 = self.inputs[0].data, self.inputs[1].data
+        return gy * x1, gy * x0
+
+
 def add(x0, x1):
     return Add()(x0, x1)
 
@@ -160,6 +176,10 @@ def square(x):
 def exp(x):
     f = Exp()
     return f(x)
+
+
+def mul(x0, x1):
+    return Mul()(x0, x1)
 
 
 def as_array(x):
