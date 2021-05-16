@@ -72,3 +72,20 @@ class MemoryManagement(unittest.TestCase):
         for i in range(10):
             x = Variable(np.random.randn(10000))  # huge data
             y = square(square(square(x)))  # complicated calculation
+
+    def test_deletion_interim_grad(self):
+        x0 = Variable(np.array(1.0))
+        x1 = Variable(np.array(1.0))
+        t = add(x0, x1)
+        y = add(x0, t)
+        y.backward()
+
+        self.assertEqual(y.grad, None)
+        self.assertEqual(t.grad, None)
+        self.assertEqual(x0.grad, 2.0)
+        self.assertEqual(x1.grad, 1.0)
+
+    def test_enable_backprop(self):
+        with no_grad():
+            x = Variable(np.array(2.0))
+            y = square(x)

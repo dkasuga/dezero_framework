@@ -1,13 +1,10 @@
 import numpy as np
 import weakref
+import contextlib
 
 
-def numerical_diff(f, x, eps=1e-4):
-    x0 = Variable(x.data - eps)
-    x1 = Variable(x.data + eps)
-    y0 = f(x0)
-    y1 = f(x1)
-    return (y1.data - y0.data) / (2 * eps)
+class Config:
+    enable_backprop = True
 
 
 class Variable:
@@ -31,7 +28,7 @@ class Variable:
     #         x = f.input  # Get the function's input
     #         x.grad = f.backward(self.grad)  # call the function's backward
     #         x.backward()
-    def backward(self):
+    def backward(self, retain_grad=False):
         if self.grad is None:
             self.grad = np.ones_like(self.data)
 
@@ -63,6 +60,10 @@ class Variable:
                 if x.creator is not None:
                     add_func(x.creator)
 
+            if not retain_grad:
+                for y in f.outputs:
+                    y().grad = None  # yはweakref
+
     def cleargrad(self):
         self.grad = None
 
@@ -75,12 +76,12 @@ class Function:
             ys = (ys, )
         outputs = [Variable(as_array(y)) for y in ys]
 
-        self.generation = max([x.generation for x in inputs])
-
-        for output in outputs:
-            output.set_creator(self)
-        self.inputs = inputs
-        self.outputs = [weakref.ref(output) for output in outputs]
+        if Config.enable_backprop:
+            self.generation = max([x.generation for x in inputs])
+            for output in outputs:
+                output.set_creator(self)
+            self.inputs = inputs
+            self.outputs = [weakref.ref(output) for output in outputs]
 
         return outputs if len(outputs) > 1 else outputs[0]
 
@@ -139,3 +140,29 @@ def as_array(x):
     if np.isscalar(x):
         return np.array(x)
     return x
+
+
+def numerical_diff(f, x, eps=1e-4):
+    x0 = Variable(x.data - eps)
+    x1 = Variable(x.data + eps)
+    y0 = f(x0)
+    y1 = f(x1)
+    return (y1.data - y0.data) / (2 * eps)
+
+
+@contextlib.contextmanager
+def using_config(name, value):
+    # ---------- 前処理 ----------
+    old_value = getattr(Config, name)
+    setattr(Config, name, value)
+    # ---------- 前処理ここまで ----------
+    try:
+        yield
+    finally:
+        # ---------- 後処理 ----------
+        setattr(Config, name, old_value)
+        # ---------- 後処理ここまで ----------
+
+
+def no_grad():
+    return using_config('enable_backprop', False)
