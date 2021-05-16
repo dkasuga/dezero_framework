@@ -65,3 +65,10 @@ class BackwardTest(unittest.TestCase):
 
         self.assertEqual(y.data, np.array(32.0))
         self.assertEqual(x.grad, np.array(64.0))
+
+
+class MemoryManagement(unittest.TestCase):
+    def test_weakref_output(self):
+        for i in range(10):
+            x = Variable(np.random.randn(10000))  # huge data
+            y = square(square(square(x)))  # complicated calculation
