@@ -23,6 +23,10 @@ def mul(x0, x1):
     return Mul()(x0, x1)
 
 
+def neg(x):
+    return Neg()(x)
+
+
 def as_array(x):
     if np.isscalar(x):
         return np.array(x)
@@ -158,6 +162,7 @@ Variable.__add__ = add
 Variable.__radd__ = add
 Variable.__mul__ = mul
 Variable.__rmul__ = mul
+Variable.__neg__ = neg
 
 
 class Function:
@@ -214,6 +219,14 @@ class Exp(Function):
         x = self.inputs[0].data
         gx = np.exp(x) * gy
         return gx
+
+
+class Neg(Function):
+    def forward(self, x):
+        return -x
+
+    def backward(self, gy):
+        return -gy
 
 
 class Mul(Function):

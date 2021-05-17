@@ -118,3 +118,8 @@ class OperationOverload(unittest.TestCase):
         self.assertEqual(y.data, np.array(5.0))
         z = 3.0 * x + 1.0
         self.assertEqual(z.data, np.array(7.0))
+
+    def test_neg(self):
+        x = Variable(np.array(2.0))
+        y = -x
+        self.assertEqual(y.data, -2.0)
