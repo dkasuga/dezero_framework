@@ -123,3 +123,10 @@ class OperationOverload(unittest.TestCase):
         x = Variable(np.array(2.0))
         y = -x
         self.assertEqual(y.data, -2.0)
+
+    def test_sub(self):
+        x = Variable(np.array(2.0))
+        y1 = 2.0 - x
+        y2 = x - 1.0
+        self.assertEqual(y1.data, 0.0)
+        self.assertEqual(y2.data, 1.0)
