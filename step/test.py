@@ -130,3 +130,10 @@ class OperationOverload(unittest.TestCase):
         y2 = x - 1.0
         self.assertEqual(y1.data, 0.0)
         self.assertEqual(y2.data, 1.0)
+
+    def test_div(self):
+        x = Variable(np.array(3.0))
+        y1 = x / 2.0
+        y2 = 6.0 / x
+        self.assertEqual(y1.data, 1.5)
+        self.assertEqual(y2.data, 2.0)
