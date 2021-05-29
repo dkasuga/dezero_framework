@@ -28,7 +28,7 @@ class Variable:
     def backward(self, retain_grad=False, create_graph=False):
         if self.grad is None:
             # self.grad = np.ones_like(self.data)
-            self.grad = Variable(np.one_like(self.data))
+            self.grad = Variable(np.ones_like(self.data))
 
         # backwardは計算グラフをDFS
         funcs = []
