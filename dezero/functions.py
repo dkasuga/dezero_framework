@@ -1,4 +1,5 @@
 import numpy as np
+from dezero.core import Variable
 from dezero.core import Function
 from dezero.core import as_variable
 from dezero import utils
@@ -86,6 +87,48 @@ class SumTo(Function):
     def backward(self, gy):
         gx = broadcast_to(gy, self.x_shape)
         return gx
+
+
+class Sum(Function):
+    def __init__(self, axis, keepdims):
+        self.axis = axis
+        self.keepdims = keepdims
+
+    def forward(self, x):
+        self.x_shape = x.shape
+        y = x.sum(axis=self.axis, keepdims=self.keepdims)
+        return y
+
+    def backward(self, gy):
+        gy = utils.reshape_sum_backward(
+            gy, self.x_shape, self.axis, self.keepdims)
+        gx = broadcast_to(gy, self.x_shape)
+        return gx
+
+
+def sum(x, axis=None, keepdims=False):
+    """ Returns the sum of all elements in the input x
+
+    Returns the sum of each row of the input tensor in the given dimension dim. If dim is a list of dimensions, reduce over all of them.
+
+    Parameters
+    ----------
+    input : Tensor
+        the input tensor.
+    axis : int or tuple of python:ints
+        the dimension or dimensions to reduce.
+    keepdim : bool
+        whether the output tensor has dim retained or not.
+
+    Examples
+    ----------
+    >>> x = Variable(np.array([[1,2,3],[4,5,6]]))
+    >>> sum(x, axis=0)
+    variable([5 7 9])
+    >>> sum(Variable(np.ones([2,3,4,5])), keepdims=True)
+    variable([[[[120.]]]])
+    """
+    return Sum(axis, keepdims)(x)
 
 
 def sum_to(x, shape):
