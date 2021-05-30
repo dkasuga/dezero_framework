@@ -136,15 +136,6 @@ class Function:
         raise NotImplementedError()
 
 
-class Add(Function):
-    def forward(self, x0, x1):
-        y = x0 + x1
-        return y
-
-    def backward(self, gy):
-        return gy, gy
-
-
 class Neg(Function):
     def forward(self, x):
         return -x
@@ -153,28 +144,55 @@ class Neg(Function):
         return -gy
 
 
+class Add(Function):
+    def forward(self, x0, x1):
+        self.x0_shape, self.x1_shape = x0.shape, x1.shape
+        y = x0 + x1
+        print("Add Forward mode: type:{}".format(type(y)))
+        return y
+
+    def backward(self, gy):
+        gx0, gx1 = gy, gy
+        if self.x0_shape != self.x1_shape:
+            gx0 = dezero.functions.sum_to(gx0, self.x0_shape)
+            gx1 = dezero.functions.sum_to(gx1, self.x1_shape)
+        print("Add Backward mode: type:{}".format(type(gx0)))
+        return gx0, gx1
+
+
 class Sub(Function):
     def forward(self, x0, x1):
+        self.x0_shape, self.x1_shape = x0.shape, x1.shape
         y = x0 - x1
         return y
 
     def backward(self, gy):
-        return gy, -gy
+        gx0, gx1 = gy, -gy
+        if self.x0_shape != self.x1_shape:
+            gx0 = dezero.functions.sum_to(gx0, self.x0_shape)
+            gx1 = dezero.functions.sum_to(gx1, self.x1_shape)
+        return gx0, gx1
 
 
 class Mul(Function):
     def forward(self, x0, x1):
+        self.x0_shape, self.x1_shape = x0.shape, x1.shape
         y = x0 * x1
         return y
 
     def backward(self, gy):
         x0, x1 = self.inputs
+        gx0, gx1 = gy * x1, gy * x0
+        if self.x0_shape != self.x1_shape:
+            gx0 = dezero.functions.sum_to(gx0, self.x0_shape)
+            gx1 = dezero.functions.sum_to(gx1, self.x1_shape)
 
-        return gy * x1, gy * x0
+        return gx0, gx1
 
 
 class Div(Function):
     def forward(self, x0, x1):
+        self.x0_shape, self.x1_shape = x0.shape, x1.shape
         y = x0 / x1
         return y
 
@@ -182,6 +200,10 @@ class Div(Function):
         x0, x1 = self.inputs
         gx0 = gy / x1
         gx1 = gy * (-x0 / x1 ** 2)
+        if self.x0_shape != self.x1_shape:
+            gx0 = dezero.functions.sum_to(gx0, self.x0_shape)
+            gx1 = dezero.functions.sum_to(gx1, self.x1_shape)
+
         return gx0, gx1
 
 
